@@ -1,3 +1,6 @@
+/logs
+/models
+/vision
 /__pycache__
 /.vscode
 /unit_test/__pycache__

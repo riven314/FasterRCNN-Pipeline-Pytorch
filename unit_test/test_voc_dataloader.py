@@ -20,7 +20,7 @@ datasets = VOCDetection2007(root = root, image_set = 'train')
 
 print(datasets[5])
 
-img = np.asarray(datasets[5][0], dtype = np.uint8)
+img = np.asarray(datasets[5][0].permute(2, 1, 0).numpy() * 255, dtype = np.uint8)
 bbox_ls = datasets[5][1].boxes.numpy() # tensor to numpy array
 area_ls = datasets[5][1].area.numpy()
 

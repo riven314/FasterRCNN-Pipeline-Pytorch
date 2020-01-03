@@ -14,11 +14,12 @@ from easydict import EasyDict as edict
 import xml.etree.cElementTree as ET
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 
 class VOCDetection2007(Dataset):
     """
-    VOC 2007 format
+    VOC 2007 format, for simplicity assume image square and all are (320, 320)
 
     input:
         root (string): Root directory of the VOC Dataset. (dir storing VOCdevkit)
@@ -28,7 +29,7 @@ class VOCDetection2007(Dataset):
         transforms (callable, optional): A function/transform that takes input sample and its target as entry
             and returns a transformed version.
     """
-    def __init__(self, root, image_set = 'train', height = 320, file_ext = '.tif', transforms = None):
+    def __init__(self, root, image_set = 'train', file_ext = '.tif', transforms = None):
         #super(VOCDetection2007, self).__init__(root, transforms)
         valid_sets = ["train", "trainval", "val"]
         assert image_set in valid_sets, '[ERROR] invalid argument image_set'
@@ -50,7 +51,6 @@ class VOCDetection2007(Dataset):
         assert (len(self.images) == len(self.annotations)), '[ERROR] image no. != annotation file no.' 
 
         self.transforms = transforms
-        self.height = height
 
     def __getitem__(self, index):
         """
@@ -65,8 +65,8 @@ class VOCDetection2007(Dataset):
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
-
-        return img, target
+        
+        return transforms.ToTensor()(img), target
 
     def __len__(self):
         return len(self.images)
@@ -82,12 +82,22 @@ class VOCDetection2007(Dataset):
         """
         # build boxes
         boxes = []
-        for obj_dict in voc_dict.annotation.object:
-            xmin = max(int(obj_dict.bndbox.xmin), 0)
-            ymin = max(int(obj_dict.bndbox.ymin), 0)
-            xmax = max(int(obj_dict.bndbox.xmax), 0)
-            ymax = max(int(obj_dict.bndbox.ymax), 0)
+        if isinstance(voc_dict.annotation.object, list):
+            for obj_dict in voc_dict.annotation.object:
+                xmin = max(int(obj_dict.bndbox.xmin), 0)
+                ymin = max(int(obj_dict.bndbox.ymin), 0)
+                xmax = max(int(obj_dict.bndbox.xmax), 0)
+                ymax = max(int(obj_dict.bndbox.ymax), 0)
+                boxes.append([xmin, ymin, xmax, ymax])
+        # only 1 bounding box
+        elif isinstance(voc_dict.annotation.object, edict):
+            xmin = max(int(voc_dict.annotation.object.bndbox.xmin), 0)
+            ymin = max(int(voc_dict.annotation.object.bndbox.ymin), 0)
+            xmax = max(int(voc_dict.annotation.object.bndbox.xmax), 0)
+            ymax = max(int(voc_dict.annotation.object.bndbox.ymax), 0)
             boxes.append([xmin, ymin, xmax, ymax])
+        else:
+            raise Exception('something wrong with VOC datasets')
         boxes = torch.as_tensor(boxes, dtype = torch.float32)
         # build labels
         obj_n = len(voc_dict.annotation.object)
