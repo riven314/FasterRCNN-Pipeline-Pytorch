@@ -55,7 +55,7 @@ preds = model(data)
 # process bbox
 img = img_tensor2np(data[0])
 boxes = boxes_tensor2np(preds[0]['boxes'], 320)
-img = plot_bbox_on_an_img(img, boxes)
+img = plot_bbox_on_an_img(img, boxes, target)
 
 plt.imshow(img)
 plt.savefig('result.png')

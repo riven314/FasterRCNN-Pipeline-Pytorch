@@ -60,7 +60,7 @@ def boxes_tensor2np(boxes_t, img_h):
     return boxes
 
 
-def plot_bbox_on_an_img(img, boxes):
+def plot_bbox_on_an_img(img, boxes, target):
     """
     input:
         img -- np uint8 array orig image
