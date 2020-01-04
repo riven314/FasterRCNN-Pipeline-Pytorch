@@ -28,6 +28,13 @@ def plot_img_and_bbox(img, bbox_ls):
     return ax
     
 
+def write_n_results():
+    """
+    get n image results and write them in disk
+    """
+    pass
+
+
 def img_tensor2np(img_t):
     """
     img_t: one tensor of image 

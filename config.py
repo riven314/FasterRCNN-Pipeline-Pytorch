@@ -35,7 +35,7 @@ def write_config(cfg, logs_dir):
     """
     assert 'SESSION' in cfg.keys(), '[ERROR] no cfg.SESSION'
     assert os.path.isdir(logs_dir), '[ERROR] logs dir not exist'
-    w_dir = os.path.join(logs_dir, 'session_{}'.format(cfg.SESSION))
+    w_dir = os.path.join(logs_dir, 'session_{:02d}'.format(cfg.SESSION))
     if not os.path.isdir(w_dir):
         os.mkdir(w_dir)
     w_path = os.path.join(w_dir, 'config.txt')

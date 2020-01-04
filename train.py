@@ -20,11 +20,13 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+from tensorboardX import SummaryWriter
 
-from train_utils.engine import train_one_epoch, evaluate
+from engine import train_one_epoch, val_one_epoch, evaluate
 from faster_rcnn import init_pretrain_faster_rcnn
 from config import cfg, write_config
 from voc_dataloader import VOCDetection2007
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -38,6 +40,7 @@ parser.add_argument('--epochs', type = int, default = 1, help = 'number of epoch
 parser.add_argument('--epochs_per_decay', type = int, default = 10, help = '# epochs to decay learning rate (by 0.1)')
 parser.add_argument('--lr', type = float, default = 0.001, help='learning rate')
 parser.add_argument('--save_int', type=int, default = 1, help='interval of training for saving models')
+parser.add_argument('--use_tb', help='whether use tensorboard', action='store_true')
 args = parser.parse_args()
 
 cfg.SESSION = args.s
@@ -78,36 +81,43 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(
                 )
 
 
-# 5a. set up model save dir, logs dir
+# 5a. set up model save dir, logs dir, tensorboard
 assert os.path.isdir('models'), '[ERROR] no models dir'
 assert os.path.isdir('logs'), '[ERROR] no logs dir'
 write_config(cfg, logs_dir = 'logs')
-model_save_dir = os.path.join('models', 'session_{}'.format(cfg.SESSION))
+model_save_dir = os.path.join('models', 'session_{:02d}'.format(cfg.SESSION))
 if not os.path.isdir(model_save_dir):
     os.mkdir(model_save_dir)
 model_f = 'res50_s{:02d}_e{}.pth'.format(cfg.SESSION, '{:03d}')
 model_temp_path = os.path.join(model_save_dir, model_f)
 print('model save path: {}'.format(model_temp_path))
 
+tb_writer = None
+if args.use_tb:
+    tb_writer = SummaryWriter('logs')
+
 
 # 5b. start training
 for epoch in range(cfg.EPOCHS):
     # train for one epoch, printing every 10 iterations
-    train_metrics = train_one_epoch(model, optimizer, train_dataloader, device, epoch, print_freq = 100)
+    train_one_epoch(model, optimizer, train_dataloader, device, cfg.SESSION, epoch, tb_writer = tb_writer, print_freq = 100)
+    # evaluate val loss (val_one_epoch) and val mAP, mAR (evaluate)
+    val_one_epoch(model, optimizer, val_dataloader, device, cfg.SESSION, epoch, tb_writer = tb_writer)
+    evaluate(model, val_dataloader, device = device)
     # update the learning rate
     lr_scheduler.step()
-    # evaluate on the test dataset
-    val_metrics = evaluate(model, val_dataloader, device = device)
     if (epoch + 1) % cfg.SAVE_INT == 0:
         model_path = model_temp_path.format(epoch + 1)
         torch.save(model.state_dict(), model_path)
         print('model saved: {}'.format(model_path))
 
+
+# 6. final save model 
 model_path = model_temp_path.format(epoch + 1)
 torch.save(model.state_dict(), model_path)
 print('model_saved: {}'.format(model_path))
 print('training complete!')
 
-
-
+if args.use_tb:
+    tb_writer.close()
 
