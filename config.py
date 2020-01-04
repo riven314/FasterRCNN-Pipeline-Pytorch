@@ -17,6 +17,7 @@ cfg.FEATURE_N = 5
 
 ##### training setting ######
 cfg.LEARNING_RATE = 0.001
+cfg.IMG_SIZE = [320, 320]
 cfg.BATCH_SIZE = 12
 cfg.EPOCHS = 10
 cfg.EPOCHS_PER_DECAY = 10

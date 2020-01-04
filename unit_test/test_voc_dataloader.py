@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 import init_path
 from voc_dataloader import VOCDetection2007
 
-root = os.path.join('/home', 'whlau', 'data', 'voc_format', 'test')
+root = os.path.join(os.getcwd(), '..', '..', 'simulated_data', 'voc_format', 'easy')
 datasets = VOCDetection2007(root = root, image_set = 'train')
 
 print(datasets[5])
@@ -32,7 +32,7 @@ for area, bbox in zip(area_ls, bbox_ls):
     print('area: {}'.format(area))
     h, w = xmax - xmin, ymax - ymin
     # (x, y) coord is interchanged, also note w, h order
-    rect = patches.Rectangle((ymin, xmin), w, h,
+    rect = patches.Rectangle((xmin, ymin), w, h,
                               linewidth = 1, edgecolor = 'r', facecolor = 'none')
     ax.add_patch(rect)
 

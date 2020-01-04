@@ -14,8 +14,8 @@ def plot_img_and_bbox(img, bbox_ls):
     for bbox in bbox_ls:
         xmin, ymin, xmax, ymax = bbox
         h, w = xmax - xmin, ymax - ymin
-        # (x, y) coord is interchanged, also note w, h order
-        rect = patches.Rectangle((ymin, xmin), w, h,
+        # (xmin, ymin) for [PIL], (xmin, ymin) for cv2
+        rect = patches.Rectangle((xmin, ymin), w, h,
                                   linewidth = 1, 
                                   edgecolor = 'r', 
                                   facecolor = 'none')

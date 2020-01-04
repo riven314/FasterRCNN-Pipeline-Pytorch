@@ -21,7 +21,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from engine import train_one_epoch, evaluate
+from train_utils.engine import train_one_epoch, evaluate
 from faster_rcnn import init_pretrain_faster_rcnn
 from config import cfg, write_config
 from voc_dataloader import VOCDetection2007
@@ -85,7 +85,7 @@ write_config(cfg, logs_dir = 'logs')
 model_save_dir = os.path.join('models', 'session_{}'.format(cfg.SESSION))
 if not os.path.isdir(model_save_dir):
     os.mkdir(model_save_dir)
-model_f = 'res50_s{:02d}_e{:03d}.pth'.format(cfg.SESSION, cfg.EPOCHS)
+model_f = 'res50_s{:02d}_e{}.pth'.format(cfg.SESSION, '{:03d}')
 model_temp_path = os.path.join(model_save_dir, model_f)
 print('model save path: {}'.format(model_temp_path))
 
@@ -99,12 +99,12 @@ for epoch in range(cfg.EPOCHS):
     # evaluate on the test dataset
     val_metrics = evaluate(model, val_dataloader, device = device)
     if (epoch + 1) % cfg.SAVE_INT == 0:
-        model_path = model_temp_path.format(cfg.SESSION, epoch)
+        model_path = model_temp_path.format(epoch + 1)
         torch.save(model.state_dict(), model_path)
         print('model saved: {}'.format(model_path))
 
-model_path = model_temp_path.format(cfg.SESSION, epoch)
-torch.save(model.stat_dict(), model_path)
+model_path = model_temp_path.format(epoch + 1)
+torch.save(model.state_dict(), model_path)
 print('model_saved: {}'.format(model_path))
 print('training complete!')
 

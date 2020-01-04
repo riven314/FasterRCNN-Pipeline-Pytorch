@@ -37,19 +37,15 @@ class VOCDetection2007(Dataset):
         voc_root = os.path.join(root, base_dir)
         image_dir = os.path.join(voc_root, 'JPEGImages')
         annotation_dir = os.path.join(voc_root, 'Annotations')
-
         assert os.path.isdir(voc_root), '[ERROR] Dataset not found or corrupted.'
-
         splits_dir = os.path.join(voc_root, 'ImageSets', 'Main')
         split_f = os.path.join(splits_dir, image_set.rstrip('\n') + '.txt')
-
         with open(os.path.join(split_f), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
         # get list of path to images and annotation files
         self.images = [os.path.join(image_dir, x + file_ext) for x in file_names]
         self.annotations = [os.path.join(annotation_dir, x + ".xml") for x in file_names]
         assert (len(self.images) == len(self.annotations)), '[ERROR] image no. != annotation file no.' 
-
         self.transforms = transforms
 
     def __getitem__(self, index):
@@ -59,13 +55,19 @@ class VOCDetection2007(Dataset):
         output:
             tuple: (image, target) where target is a dictionary of the XML tree.
         """
-        img = Image.open(self.images[index]).convert('RGB')
+        # PIL.Image causes a lot of trouble when working with opencv, Pillow, torchvision tgt!
+        #img = Image.open(self.images[index]).convert('RGB') 
+        # this assertion is important so as to make cv2.imread more robust to error
+        assert os.path.isfile(self.images[index]), '[ERROR] image file not exist: {}'.format(self.images[index]) 
+        img = cv2.imread(self.images[index], cv2.IMREAD_GRAYSCALE)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         voc_dict = self.parse_voc_xml(ET.parse(self.annotations[index]).getroot())
         target = self.dict_to_target(voc_dict, index)
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
-        
+        #print(self.images[index])
+        #print(img)
         return transforms.ToTensor()(img), target
 
     def __len__(self):
