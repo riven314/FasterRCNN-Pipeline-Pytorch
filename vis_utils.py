@@ -3,14 +3,15 @@
 QUESTIONS
 1. when doing img_t.permute(), should be img_t.permute(1, 2, 0) or img_t.permute(2, 1, 0)?
 """
+import init_path
+
 import os
 import sys
 
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-
-import init_path
 
 
 def plot_img_and_bbox(img, bbox_ls):
@@ -28,9 +29,9 @@ def plot_img_and_bbox(img, bbox_ls):
     return ax
     
 
-def write_n_results():
+def write_n_results(model, dataloader, device, session, img_n):
     """
-    get n image results and write them in disk
+    get n image results and write them in disk (inside logs/session_{:02d})
     """
     pass
 
@@ -47,7 +48,7 @@ def img_tensor2np(img_t):
     return img
 
 
-def bboxes_tensor2np(boxes_t, img_h):
+def boxes_tensor2np(boxes_t, img_h):
     """
     boxes_t: list of bboxes tensor
 
@@ -57,3 +58,24 @@ def bboxes_tensor2np(boxes_t, img_h):
     boxes = np.clip(boxes_t.cpu().numpy(), a_min = 0, a_max = img_h)
     boxes = np.asarray(boxes, dtype = np.uint8)
     return boxes
+
+
+def plot_bbox_on_an_img(img, boxes):
+    """
+    input:
+        img -- np uint8 array orig image
+        boxes -- array of [xmin, ymin, xmax, ymax]
+    output:
+        img -- np uint8 array image with bbox (change in place)
+    """
+    for box in boxes:
+        box = map(int, box)
+        xmin, ymin, xmax, ymax = box
+        h, w = xmax - xmin, ymax - ymin
+        cv2.rectangle(img, (ymin, xmin), (ymin + w, xmin + h), (0, 255, 0), 2)
+    for box in target[0]['boxes'].tolist():
+        box = map(int, box)
+        xmin, ymin, xmax, ymax = box
+        h, w = xmax - xmin, ymax - ymin
+        cv2.rectangle(img, (ymin, xmin), (ymin + w, xmin + h), (255, 0, 0), 2)
+    return img
