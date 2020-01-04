@@ -98,11 +98,14 @@ for epoch in range(cfg.EPOCHS):
     lr_scheduler.step()
     # evaluate on the test dataset
     val_metrics = evaluate(model, val_dataloader, device = device)
-    if epoch + 1 % cfg.SAVE_INT == 0:
+    if (epoch + 1) % cfg.SAVE_INT == 0:
         model_path = model_temp_path.format(cfg.SESSION, epoch)
         torch.save(model.state_dict(), model_path)
-        print('model saved: {model_path}')
+        print('model saved: {}'.format(model_path))
 
+model_path = model_temp_path.format(cfg.SESSION, epoch)
+torch.save(model.stat_dict(), model_path)
+print('model_saved: {}'.format(model_path))
 print('training complete!')
 
 

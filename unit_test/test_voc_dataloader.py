@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 import init_path
 from voc_dataloader import VOCDetection2007
 
-root = os.path.join(os.getcwd(), '..', '..', 'simulated_data', 'voc_format', 'test')
+root = os.path.join('/home', 'whlau', 'data', 'voc_format', 'test')
 datasets = VOCDetection2007(root = root, image_set = 'train')
 
 print(datasets[5])
