@@ -1,3 +1,8 @@
+"""
+
+QUESTIONS
+1. when doing img_t.permute(), should be img_t.permute(1, 2, 0) or img_t.permute(2, 1, 0)?
+"""
 import os
 import sys
 
@@ -22,3 +27,26 @@ def plot_img_and_bbox(img, bbox_ls):
         ax.add_patch(rect)
     return ax
     
+
+def img_tensor2np(img_t):
+    """
+    img_t: one tensor of image 
+
+    REFERENCE:
+    - https://discuss.pytorch.org/t/convert-image-tensor-to-numpy-image-array/22887/2
+    """
+    img = img_t.permute(1, 2, 0).cpu().numpy()
+    img = np.asarray(img * 255, dtype = np.uint8)
+    return img
+
+
+def bboxes_tensor2np(boxes_t, img_h):
+    """
+    boxes_t: list of bboxes tensor
+
+    [[xmin, ymin, xmax, ymax]]
+    """
+    # prevent overfloat / underfloat
+    boxes = np.clip(boxes_t.cpu().numpy(), a_min = 0, a_max = img_h)
+    boxes = np.asarray(boxes, dtype = np.uint8)
+    return boxes

@@ -4,6 +4,11 @@ prepare Faster RCNN model
 - backbone
 - number of feature maps
 
+NOTES:
+1. torchvision/models/detection/faster_rcnn.py 
+    - transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
+    - image = torch.nn.functional.interpolate(image[None], scale_factor=scale_factor, mode='bilinear', align_corners=False)[0]
+
 REFERENCE:
 1. change pretrained Faster RCNN config in PyTorch: https://github.com/pytorch/vision/issues/978
 2. [medium] exact algorithm for Faster-RCNN: https://towardsdatascience.com/faster-r-cnn-object-detection-implemented-by-keras-for-custom-data-from-googles-open-images-125f62b9141a

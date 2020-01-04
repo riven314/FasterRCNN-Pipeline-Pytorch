@@ -31,6 +31,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         losses = sum(loss for loss in loss_dict.values())
 
         # reduce losses over all GPUs for logging purposes
+        # single GPU made no difference
         loss_dict_reduced = utils.reduce_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
@@ -86,7 +87,7 @@ def evaluate(model, data_loader, device):
         torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(image)
-
+        # should be unchanged as above
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
 
