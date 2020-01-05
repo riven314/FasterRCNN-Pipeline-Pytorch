@@ -23,40 +23,45 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-from train_utils.engine import train_one_epoch, evaluate
-from config import cfg
-from faster_rcnn import init_pretrain_faster_rcnn
-from voc_dataloader import VOCDetection2007
+from voc_dataloader import VOCDetection2007, get_transform
 from vis_utils import img_tensor2np, boxes_tensor2np, plot_bbox_on_an_img
 
 
-voc_base_dir = os.path.join('..', 'simulated_data', 'voc_format', 'mini_easy')
-model_path = os.path.join('models', 'session_09', 'res50_s09_e030.pth')
-assert os.path.isdir(voc_base_dir), '[ERROR] no such VOC base dir {}'.format(voc_base_dir)
-assert os.path.isfile(model_path), '[ERROR] no such model weight {}'.format(model_path)
+def inference_n_img(model, device, voc_base_dir, write_dir, n, mode = 'val'):
+    """
+    load n images and plot their bounding box prediction result
+    write into disk and disable data augmentation
 
-train_data = VOCDetection2007(root = voc_base_dir, image_set = 'train')
-train_dataloader = DataLoader(train_data, 1, shuffle = True, num_workers = 0, collate_fn = lambda x: tuple(zip(*x)))
+    input:
+        write_dir -- dir for writing images with bounding box
+        n -- # image to be plotted
+        mode -- str, 'train'/ 'val' (use train data or val data)
+    """
+    assert mode in ['train', 'val'], '[ERROR] mode argument is wrong'
+    temp_png = 'result_{:04d}.png'
+    cpu_device = torch.device("cpu")
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = init_pretrain_faster_rcnn(cfg)
-model.load_state_dict(torch.load(model_path))
-
-model = model.to(device)
-for param in model.parameters():
-    param.requires_grad = False
-model.eval()
-
-data, target = next(iter(train_dataloader))
-data = list(d.to(device) for d in data)
-target = [{k: v.to(device) for k, v in t.items()} for t in target]
-preds = model(data)
-
-# process bbox
-img = img_tensor2np(data[0])
-boxes = boxes_tensor2np(preds[0]['boxes'], 320)
-img = plot_bbox_on_an_img(img, boxes, target)
-
-plt.imshow(img)
-plt.savefig('result.png')
+    model.to(device)
+    model.eval()
+    dataset = VOCDetection2007(
+        root = voc_base_dir, image_set = mode, transforms = get_transform(False)
+        )
+    dataloader = DataLoader(
+        dataset, 1, shuffle = True, num_workers = 0, collate_fn = lambda x: tuple(zip(*x))
+        )
+    with torch.no_grad():
+        for i, (data, target) in enumerate(dataloader):
+            if i >= n:
+                break
+            data = list(d.to(device) for d in data)
+            target = [{k: v.to(device) for k, v in t.items()} for t in target]
+            preds = model(data)
+            target = [{k: v.to(cpu_device) for k, v in t.items()} for t in target]
+            preds = [{k: v.to(cpu_device) for k, v in t.items()} for t in preds]
+            img = img_tensor2np(data[0])
+            boxes = preds[0]['boxes']
+            boxes = boxes_tensor2np(boxes, img_h = data[0].shape[-1])
+            bbox_img = plot_bbox_on_an_img(img, boxes, target)
+            w_path = os.path.join(write_dir, temp_png.format(i))
+            cv2.imwrite(w_path, bbox_img)
 

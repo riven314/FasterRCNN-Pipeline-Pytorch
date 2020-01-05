@@ -14,6 +14,13 @@ REFERENCE:
 2. [medium] exact algorithm for Faster-RCNN: https://towardsdatascience.com/faster-r-cnn-object-detection-implemented-by-keras-for-custom-data-from-googles-open-images-125f62b9141a
 3. [colab] how to setup fine-tuning Faster RCNN: https://colab.research.google.com/github/pytorch/vision/blob/temp-tutorial/tutorials/torchvision_finetuning_instance_segmentation.ipynb#scrollTo=ZEARO4B_ye0s
 4. [github] fasterrcnn_resnet50_fpn source code: https://github.com/pytorch/vision/blob/master/torchvision/models/detection/faster_rcnn.py
+
+FROM SOURCE CODE:
+    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    rpn_anchor_generator = AnchorGenerator(
+        anchor_sizes, aspect_ratios
+    )
 """
 import os
 import sys
@@ -29,8 +36,18 @@ from config import cfg
 def init_pretrain_faster_rcnn(cfg):
     class_n = cfg.CLASS_N
     h, _ = cfg.IMG_SIZE
+    anchor_gen = None
+    if cfg.ANCHOR_SCALES != [32, 64, 128, 256, 512] or cfg.ANCHOR_RATIOS != [0.5, 1.0, 2.0]:
+        anchor_sizes = tuple([(scale, ) for scale in cfg.ANCHOR_SCALES])
+        anchor_ratios = (tuple(cfg.ANCHOR_RATIOS),) * len(anchor_sizes)
+        print('anchor_sizes or anchor ratios changed from default')
+        print('anchor_sizes: {}'.format(anchor_sizes))
+        print('anchor_ratios: {}'.format(anchor_ratios))
+        anchor_gen = AnchorGenerator(anchor_sizes, anchor_ratios)
     # fasterrcnn_resnet50_fpn: pay attention to default min_size = 800, max_size = 1333
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained = True, min_size = h)
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+                pretrained = True, min_size = h, rpn_anchor_generator = anchor_gen
+                )
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_n)
     return model

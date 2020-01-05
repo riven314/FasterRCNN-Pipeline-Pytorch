@@ -25,7 +25,8 @@ from tensorboardX import SummaryWriter
 from engine import train_one_epoch, val_one_epoch, evaluate
 from faster_rcnn import init_pretrain_faster_rcnn
 from config import cfg, write_config
-from voc_dataloader import VOCDetection2007
+from voc_dataloader import VOCDetection2007, get_transform
+from eval import inference_n_img
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -38,9 +39,11 @@ parser.add_argument('--s', type = int, help = 'training session (as training ID)
 parser.add_argument('--bs', type = int, default = 8, help = 'batch size for training')
 parser.add_argument('--epochs', type = int, default = 1, help = 'number of epochs for training')
 parser.add_argument('--epochs_per_decay', type = int, default = 10, help = '# epochs to decay learning rate (by 0.1)')
-parser.add_argument('--lr', type = float, default = 0.001, help='learning rate')
-parser.add_argument('--save_int', type=int, default = 1, help='interval of training for saving models')
+parser.add_argument('--lr', type = float, default = 0.001, help = 'learning rate')
+parser.add_argument('--save_int', type = int, default = 1, help = 'interval of training for saving models')
+parser.add_argument('--infer_img_n', type = int, default = 0, help = '# of predicted images to be written')
 parser.add_argument('--use_tb', help='whether use tensorboard', action='store_true')
+parser.add_argument('--use_aug', help='whether use image augmentation (horizontal / vertical flip)', action='store_true')
 args = parser.parse_args()
 
 cfg.SESSION = args.s
@@ -49,6 +52,7 @@ cfg.BATCH_SIZE = args.bs
 cfg.EPOCHS = args.epochs
 cfg.EPOCHS_PER_DECAY = args.epochs_per_decay
 cfg.SAVE_INT = args.save_int
+cfg.USE_DATA_AUG = args.use_aug
 voc_base_dir = args.voc_base_dir
 worker_n = args.worker_n
 
@@ -60,9 +64,16 @@ model.to(device)
 
 
 # 3. set up dataloader
+# tensor: (C, H, W)
 print('setting dataloader for traing, val...')
-train_data = VOCDetection2007(root = voc_base_dir, image_set = 'train')
-val_data = VOCDetection2007(root = voc_base_dir, image_set = 'val')
+if args.use_aug:
+    print('data augmentation mode is on')
+    train_transform = get_transform(is_aug = True)
+else:
+    train_transform = get_transform(is_aug = False)
+
+train_data = VOCDetection2007(root = voc_base_dir, image_set = 'train', transforms = train_transform)
+val_data = VOCDetection2007(root = voc_base_dir, image_set = 'val', transforms = get_transform(is_aug = False))
 train_dataloader = DataLoader(train_data, cfg.BATCH_SIZE, 
                               shuffle = True, num_workers = worker_n, 
                               collate_fn = lambda x: tuple(zip(*x)) )
@@ -81,7 +92,7 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(
                 )
 
 
-# 5a. set up model save dir, logs dir, tensorboard
+# 5. set up model save dir, logs dir, tensorboard
 assert os.path.isdir('models'), '[ERROR] no models dir'
 assert os.path.isdir('logs'), '[ERROR] no logs dir'
 write_config(cfg, logs_dir = 'logs')
@@ -97,7 +108,7 @@ if args.use_tb:
     tb_writer = SummaryWriter('logs')
 
 
-# 5b. start training
+# 6. start training
 for epoch in range(cfg.EPOCHS):
     # train for one epoch, printing every 10 iterations
     train_one_epoch(model, optimizer, train_dataloader, device, cfg.SESSION, epoch, tb_writer = tb_writer, print_freq = 100)
@@ -112,7 +123,19 @@ for epoch in range(cfg.EPOCHS):
         print('model saved: {}'.format(model_path))
 
 
-# 6. final save model 
+# 7. plotting results for training set and test set
+if args.infer_img_n != 0:
+    write_train_img_dir = os.path.join('logs', 'session_{:02d}'.format(cfg.SESSION), 'train_results')
+    write_val_img_dir = os.path.join('logs', 'session_{:02d}'.format(cfg.SESSION), 'val_results')
+    if not os.path.isdir(write_train_img_dir):
+        os.mkdir(write_train_img_dir)
+    if not os.path.isdir(write_val_img_dir):
+        os.mkdir(write_val_img_dir)
+    inference_n_img(model, device, voc_base_dir, write_train_img_dir, n = args.infer_img_n, mode = 'train')
+    inference_n_img(model, device, voc_base_dir, write_val_img_dir, n = args.infer_img_n, mode = 'val')
+
+
+# 8. final save model 
 model_path = model_temp_path.format(epoch + 1)
 torch.save(model.state_dict(), model_path)
 print('model_saved: {}'.format(model_path))

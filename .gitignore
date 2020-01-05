@@ -4,3 +4,4 @@
 /__pycache__
 /.vscode
 /unit_test/__pycache__
+/unit_test/test_img

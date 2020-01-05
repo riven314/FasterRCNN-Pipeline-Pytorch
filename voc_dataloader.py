@@ -2,6 +2,8 @@
 loading data in VOC format. reference from (with a few modification):
 https://github.com/pytorch/vision/blob/07cbb46aba8569f0fac95667d57421391e6d36e9/torchvision/datasets/voc.py#L213
 """
+import init_path
+
 import os
 import sys
 import collections
@@ -14,7 +16,16 @@ from easydict import EasyDict as edict
 import xml.etree.cElementTree as ET
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms
+import transforms as T # from train_utils
+
+
+def get_transform(is_aug):
+    transforms = []
+    transforms.append(T.ToTensor())
+    if is_aug:
+        transforms.append(T.RandomHorizontalFlip(0.5))
+        transforms.append(T.RandomVerticalFlip(0.5))
+    return T.Compose(transforms)
 
 
 class VOCDetection2007(Dataset):
@@ -66,9 +77,11 @@ class VOCDetection2007(Dataset):
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
+        else:
+            img = T.ToTensor()(img)
         #print(self.images[index])
         #print(img)
-        return transforms.ToTensor()(img), target
+        return img, target
 
     def __len__(self):
         return len(self.images)

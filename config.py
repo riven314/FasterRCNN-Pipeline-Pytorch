@@ -10,8 +10,8 @@ cfg = edict()
 # include background
 cfg.CLASS_N = 2 
 # anchor scales and ratios (list)
-cfg.ANCHOR_SCALES = [16, 32, 64, 128, 256]
-cfg.ANCHOR_RATIOS = [0.5, 1.0, 2.0]
+cfg.ANCHOR_SCALES = [8, 16, 32, 64, 128]
+cfg.ANCHOR_RATIOS = [0.25, 1.0, 4.0]
 # number of FPN layers
 cfg.FEATURE_N = 5 
 
