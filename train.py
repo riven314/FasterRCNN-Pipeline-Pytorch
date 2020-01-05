@@ -42,8 +42,9 @@ parser.add_argument('--epochs_per_decay', type = int, default = 10, help = '# ep
 parser.add_argument('--lr', type = float, default = 0.001, help = 'learning rate')
 parser.add_argument('--save_int', type = int, default = 1, help = 'interval of training for saving models')
 parser.add_argument('--infer_img_n', type = int, default = 0, help = '# of predicted images to be written')
-parser.add_argument('--use_tb', help='whether use tensorboard', action='store_true')
-parser.add_argument('--use_aug', help='whether use image augmentation (horizontal / vertical flip)', action='store_true')
+parser.add_argument('--use_tb', help = 'whether use tensorboard', action='store_true')
+parser.add_argument('--use_aug', help = 'whether use image augmentation (horizontal / vertical flip)', action='store_true')
+parser.add_argument('--no_update_epoch', help = 'epochs at which no more lr update is done', type = int, default = 9999)
 args = parser.parse_args()
 
 cfg.SESSION = args.s
@@ -53,6 +54,7 @@ cfg.EPOCHS = args.epochs
 cfg.EPOCHS_PER_DECAY = args.epochs_per_decay
 cfg.SAVE_INT = args.save_int
 cfg.USE_DATA_AUG = args.use_aug
+cfg.NO_UPDATE_EPOCH = args.no_update_epoch
 voc_base_dir = args.voc_base_dir
 worker_n = args.worker_n
 
@@ -116,7 +118,8 @@ for epoch in range(cfg.EPOCHS):
     val_one_epoch(model, optimizer, val_dataloader, device, cfg.SESSION, epoch, tb_writer = tb_writer)
     evaluate(model, val_dataloader, device = device)
     # update the learning rate
-    lr_scheduler.step()
+    if (epoch + 1) < args.no_update_epoch:
+        lr_scheduler.step()
     if (epoch + 1) % cfg.SAVE_INT == 0:
         model_path = model_temp_path.format(epoch + 1)
         torch.save(model.state_dict(), model_path)
